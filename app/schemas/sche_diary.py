@@ -93,6 +93,11 @@ class MemoryCreate(BaseModel):
     tags: List[str] = Field(default_factory=list, description="Danh sách tags")
 
 
+class MemoryUpdate(BaseModel):
+    content: Optional[str] = Field(None, description="Nội dung ký ức")
+    tags: Optional[List[str]] = Field(None, description="Danh sách tags")
+
+
 class MemoryResponse(BaseModel):
     id: int
     user_id: int

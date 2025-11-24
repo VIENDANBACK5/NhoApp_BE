@@ -42,17 +42,17 @@
 │  │  │  CORS → Authentication → Exception Handler → Logging          │     │  │
 │  │  └───────────────────────────────────────────────────────────────┘     │  │
 │  │                                                                          │  │
-│  │  ┌─────────────────── API Routes ───────────────────────────────┐     │  │
-│  │  │  /health-check                                                │     │  │
-│  │  │  /api/auth/*  (Login, Register, Refresh Token)               │     │  │
-│  │  │  /api/v1/*    (Diary, Note, Memory, Chat, OCR, Health...)    │     │  │
-│  │  │  /docs        (Swagger UI)                                    │     │  │
-│  │  │  /openapi.json                                                │     │  │
-│  │  └───────────────────────────────────────────────────────────────┘     │  │
+  │  ┌─────────────────── API Routes ───────────────────────────────┐     │  │
+  │  │  /health-check                                                │     │  │
+  │  │  /api/auth/*  (Login, Register, Refresh Token)               │     │  │
+  │  │  /api/v1/*    (Diary, Note, Memory CRUD, Chat, OCR, ASR...)  │     │  │
+  │  │  /docs        (Swagger UI)                                    │     │  │
+  │  │  /openapi.json                                                │     │  │
+  │  └───────────────────────────────────────────────────────────────┘     │  │
 │  │                                                                          │  │
-│  │  ┌─────────────────── Business Logic ───────────────────────────┐     │  │
-│  │  │  Services: AI, OCR, Storage, Auth, User                      │     │  │
-│  │  └───────────────────────────────────────────────────────────────┘     │  │
+  │  ┌─────────────────── Business Logic ───────────────────────────┐     │  │
+  │  │  Services: AI, OCR, ASR, Storage, Auth, User                 │     │  │
+  │  └───────────────────────────────────────────────────────────────┘     │  │
 │  │                                                                          │  │
 │  │  ┌─────────────────── Data Access ──────────────────────────────┐     │  │
 │  │  │  SQLAlchemy ORM                                               │     │  │
@@ -85,16 +85,29 @@
 ┌───────────────────────────────────────────────────────────────────────────────┐
 │                          EXTERNAL SERVICES                                     │
 │  ┌────────────────────────────┐  ┌────────────────────────────┐              │
-│  │     OpenAI API             │  │   Cloud Storage (Future)   │              │
+│  │     OpenAI API             │  │   Groq API (Llama 3)       │              │
 │  │  ┌──────────────────────┐  │  │  ┌──────────────────────┐  │              │
-│  │  │ GPT-3.5-turbo        │  │  │  │ AWS S3 / MinIO       │  │              │
-│  │  │ - Chat completion    │  │  │  │ - Image storage      │  │              │
-│  │  │ - Emotion analysis   │  │  │  │ - Audio storage      │  │              │
+│  │  │ GPT-3.5-turbo        │  │  │  │ Meta ASR (Omnilingual│  │              │
+│  │  │ - Chat completion    │  │  │  │ - Speech-to-Text     │  │              │
+│  │  │ - Emotion analysis   │  │  │  │ - 1600+ languages    │  │              │
 │  │  │                      │  │  │  │                      │  │              │
-│  │  │ GPT-4o-mini          │  │  │  │ Currently:           │  │              │
-│  │  │ - Vision OCR         │  │  │  │ - Base64 in DB       │  │              │
+│  │  │ GPT-4o-mini          │  │  │  │ Llama 3              │  │              │
+│  │  │ - Vision OCR         │  │  │  │ - AI Analysis        │  │              │
 │  │  └──────────────────────┘  │  │  └──────────────────────┘  │              │
-│  │  HTTPS API Calls           │  │  HTTP/S3 Protocol          │              │
+│  │  HTTPS API Calls           │  │  HTTPS API Calls           │              │
+│  └────────────────────────────┘  └────────────────────────────┘              │
+│                                                                                │
+│  ┌────────────────────────────┐  ┌────────────────────────────┐              │
+│  │   Cloud Storage (Future)   │  │   Tesseract OCR (Local)    │              │
+│  │  ┌──────────────────────┐  │  │  ┌──────────────────────┐  │              │
+│  │  │ AWS S3 / MinIO       │  │  │  │ - Vietnamese OCR     │  │              │
+│  │  │ - Image storage      │  │  │  │ - English OCR        │  │              │
+│  │  │ - Audio storage      │  │  │  │ - Image to text      │  │              │
+│  │  │                      │  │  │  │                      │  │              │
+│  │  │ Currently:           │  │  │  │ Local processing     │  │              │
+│  │  │ - Base64 in DB       │  │  │  │ - Fast extraction    │  │              │
+│  │  └──────────────────────┘  │  │  └──────────────────────┘  │              │
+│  │  HTTP/S3 Protocol          │  │  System library            │              │
 │  └────────────────────────────┘  └────────────────────────────┘              │
 └───────────────────────────────────────────────────────────────────────────────┘
 
@@ -130,15 +143,16 @@
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃  TIER 2: BUSINESS LOGIC LAYER                                     ┃
 ┃                                                                    ┃
-┃  ┌─────────────────────────────────────────────────────────────┐ ┃
-┃  │              Domain Services                                 │ ┃
-┃  ├─────────────────────────────────────────────────────────────┤ ┃
-┃  │  • AIService      → OpenAI integration                       │ ┃
-┃  │  • OCRService     → Image to text extraction                 │ ┃
-┃  │  • StorageService → File upload handling                     │ ┃
-┃  │  • AuthService    → Authentication & Authorization           │ ┃
-┃  │  • UserService    → User management                          │ ┃
-┃  └─────────────────────────────────────────────────────────────┘ ┃
+  │  ┌─────────────────────────────────────────────────────────────┐ ┃
+  │  │              Domain Services                                 │ ┃
+  │  ├─────────────────────────────────────────────────────────────┤ ┃
+  │  │  • AIService      → OpenAI/Groq integration                  │ ┃
+  │  │  • OCRService     → Tesseract image to text (vi/en)          │ ┃
+  │  │  • ASRService     → Meta ASR speech-to-text (1600+ langs)    │ ┃
+  │  │  • StorageService → File upload (image/audio) handling       │ ┃
+  │  │  • AuthService    → Authentication & Authorization           │ ┃
+  │  │  • UserService    → User management                          │ ┃
+  │  └─────────────────────────────────────────────────────────────┘ ┃
 ┃                                                                    ┃
 ┃  ┌─────────────────────────────────────────────────────────────┐ ┃
 ┃  │              Business Rules                                  │ ┃
@@ -207,7 +221,7 @@
       └─> Firewall Rules
       └─> DDoS Protection
 
-  [2] Application Security  
+  [2] Application Security
       └─> JWT Authentication (Bearer Token)
       └─> Password Hashing (bcrypt)
       └─> CORS Policy
@@ -221,7 +235,7 @@
       └─> Row-level Security (user_id filtering)
 
   [4] API Security
-      └─> API Key for OpenAI (Environment Variable)
+      └─> API Keys (Groq, Meta ASR) in Environment Variables
       └─> Token Expiration (Access: 30min, Refresh: 7days)
       └─> Sensitive Data Masking in Logs
 ```
@@ -264,11 +278,11 @@
                                           │ @login_req'd │
                                           └──────┬───────┘
                                                  │
-                                          ┌──────▼───────────┐
+                                          ┌───────────────────┐
                                           │ OCRService       │
-                                          │ - OpenAI Vision  │
-                                          │ - Extract text   │
-                                          └──────┬───────────┘
+                                          │ - Tesseract OCR  │
+                                          │ - Extract vi/en  │
+                                          └───────────────────┘
                                                  │
                                           ┌──────▼──────────┐
                                           │ AIService       │
@@ -302,12 +316,12 @@
                                           │ (name, age, etc.) │
                                           └──────┬────────────┘
                                                  │
-                                          ┌──────▼────────────┐
+                                          ┌────────────────────┐
                                           │ AIService         │
                                           │ - Build context   │
-                                          │ - Call OpenAI API │
+                                          │ - Call Groq API   │
                                           │ - Role: "cháu"    │
-                                          └──────┬────────────┘
+                                          └────────────────────┘
                                                  │
                                           ┌──────▼────────────┐
                                           │ Save conversation │
@@ -369,8 +383,8 @@
 │  │  │  Volumes:                                              │ │ │
 │  │  │    - ./app:/app (Code hot-reload)                     │ │ │
 │  │  │    - ./app/db-oci/wallet:/app/wallet (Oracle Wallet) │ │ │
-│  │  │  Environment:                                          │ │ │
-│  │  │    - DATABASE_URL, JWT_SECRET, OPENAI_API_KEY...      │ │ │
+  │  │  Environment:                                          │ │ │
+  │  │    - DATABASE_URL, JWT_SECRET, GROQ_API_KEY...        │ │ │
 │  │  │  Command: uvicorn --reload --host 0.0.0.0             │ │ │
 │  │  └────────────────────────────────────────────────────────┘ │ │
 │  └─────────────────────────────────────────────────────────────┘ │
@@ -401,13 +415,14 @@ BE1/
 │   │       ├── diaries.py      # 📔 Diary CRUD + OCR
 │   │       ├── notes.py        # 📝 Smart notes
 │   │       ├── reminders.py    # ⏰ Reminders
-│   │       ├── memories.py     # 💭 Memories + Photo/Audio
+│   │       ├── memories.py     # 💭 Memories CRUD + Photo/Audio
 │   │       ├── health.py       # 🏥 Health logs
 │   │       ├── chat.py         # 💬 AI Chat
 │   │       ├── profile.py      # 👤 User profile
 │   │       ├── auth.py         # 🔐 Authentication
-│   │       ├── users.py        # 👥 User management
-│   │       └── ocr.py          # 🖼️ OCR endpoint
+  │       ├── users.py        # 👥 User management
+  │       ├── ocr.py          # 🖼️ OCR endpoint (Tesseract)
+  │       └── asr.py          # 🎤 ASR Speech-to-Text
 │   ├── core/
 │   │   ├── config.py           # Environment variables
 │   │   ├── database.py         # Oracle DB connection
@@ -543,8 +558,8 @@ BE1/
              │
    ┌─────────▼──────────┐
    │ OCR Processing     │
-   │ - OpenAI Vision    │
-   │ - Extract text     │
+   │ - Tesseract OCR    │
+   │ - Extract vi/en    │
    └─────────┬──────────┘
              │
    ┌─────────▼──────────┐
@@ -596,21 +611,24 @@ BE1/
 
 ## 13. Tech Stack
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Framework** | FastAPI | REST API framework |
-| **Language** | Python 3.10+ | Backend logic |
-| **Database** | Oracle Cloud | Data persistence |
-| **ORM** | SQLAlchemy | Database mapping |
-| **Migration** | Alembic | Schema versioning |
-| **Authentication** | JWT | Token-based auth |
-| **AI** | OpenAI API | Chat, OCR, Analysis |
-| **Container** | Docker | Deployment |
-| **Web Server** | Uvicorn | ASGI server |
+| Layer              | Technology       | Purpose                      |
+| ------------------ | ---------------- | ---------------------------- |
+| **Framework**      | FastAPI          | REST API framework           |
+| **Language**       | Python 3.12+     | Backend logic                |
+| **Database**       | Oracle Cloud     | Data persistence             |
+| **ORM**            | SQLAlchemy       | Database mapping             |
+| **Migration**      | Alembic          | Schema versioning            |
+| **Authentication** | JWT              | Token-based auth             |
+| **AI**             | Groq/Llama 3     | Chat, Analysis               |
+| **OCR**            | Tesseract        | Image to text (vi/en)        |
+| **ASR**            | Meta Omnilingual | Speech-to-text (1600+ langs) |
+| **Container**      | Docker           | Deployment                   |
+| **Web Server**     | Uvicorn          | ASGI server                  |
 
 ## 14. Infrastructure Components
 
 ### Current Setup (Development)
+
 ```
 ┌─────────────────────────────────────────────────────┐
 │  Development Environment                             │
@@ -625,6 +643,7 @@ BE1/
 ```
 
 ### Production Setup (Future)
+
 ```
 ┌─────────────────────────────────────────────────────┐
 │  Cloud Infrastructure (AWS/GCP/Azure/OCI)           │
@@ -642,28 +661,46 @@ BE1/
 ## 15. Key Features Flow
 
 ### Feature 1: Nhật ký thông minh (Smart Diary)
+
 ```
-Chụp ảnh → OCR (OpenAI) → Trích xuất text → AI phân tích cảm xúc → Lưu DB
+Chụp ảnh → OCR (Tesseract) → Trích xuất text (vi/en) → AI phân tích cảm xúc (Groq) → Lưu DB
 ```
 
 ### Feature 2: Chat AI
+
 ```
-Người dùng hỏi → Load context (profile + history) → OpenAI chat → Lưu conversation → Trả lời
+Người dùng hỏi → Load context (profile + history) → Groq/Llama 3 chat → Lưu conversation → Trả lời
 ```
 
 ### Feature 3: Ảnh ký ức (Memory Album)
+
 ```
-Upload ảnh + audio → Storage service → Base64/S3 → Lưu URLs vào DB → Xem lại có nút phát audio
+Upload ảnh + audio → Storage service → Base64/S3 → Lưu URLs vào DB → CRUD operations
+- CREATE: POST /memory (text) | POST /memory/photo_audio (with files)
+- READ: GET /memory (list) | GET /memory/{id} (single)
+- UPDATE: PUT /memory/{id} (content/tags)
+- DELETE: DELETE /memory/{id}
 ```
 
 ### Feature 4: Nhắc nhở thông minh (Smart Reminder)
+
 ```
 Ghi chú "uống thuốc lúc 8h" → AI extract datetime → Tạo reminder → Push notification (TODO)
 ```
 
 ### Feature 5: Phân tích sức khỏe (Health Insights)
+
 ```
 Nhập logs (huyết áp, đường huyết) → AI phân tích xu hướng → Đưa ra khuyến nghị
+```
+
+### Feature 6: Speech-to-Text (ASR)
+
+```
+Upload audio file → Meta Omnilingual ASR → Transcribe text (1600+ languages)
+- Single file: POST /asr/transcribe
+- Batch: POST /asr/transcribe/batch
+- Supported: vie_Latn, eng_Latn, and 1600+ more
 ```
 
 ## 16. High Availability Architecture (Future)
@@ -827,42 +864,51 @@ Response Format:
 ### ✅ Đặc điểm chính:
 
 **1. Architecture Pattern**
+
 - 3-Tier Architecture (Presentation → Business Logic → Data Access)
 - Repository Pattern với ORM (SQLAlchemy)
 - Service-Oriented Design
 - Microservices-ready (có thể tách thành nhiều service độc lập)
 
-**2. Technology Stack**
+**3. Technology Stack**
+
 - Backend Framework: FastAPI (Python 3.12)
 - Database: Oracle Cloud Autonomous Database
 - ORM: SQLAlchemy 2.x
 - Migration: Alembic
 - Authentication: JWT (JSON Web Token)
-- AI Integration: OpenAI API (GPT-3.5-turbo, GPT-4o-mini)
+- AI Integration: Groq API (Llama 3) for chat & analysis
+- OCR: Tesseract (Vietnamese/English)
+- ASR: Meta Omnilingual ASR (1600+ languages)
 - Containerization: Docker + Docker Compose
 - Web Server: Uvicorn (ASGI)
 
 **3. Infrastructure**
+
 - Container Runtime: Docker
 - Database Connection: Oracle Wallet (mTLS)
 - Current Environment: Development (single instance)
 - Future Scalability: Kubernetes, Load Balancer, Multi-region
 
 **4. Security**
+
 - Network: HTTPS/TLS
 - Application: JWT, Password Hashing (bcrypt), CORS, Rate Limiting
 - Database: Wallet Authentication, Encrypted Connection, ORM Protection
 - API: Environment Variables for Secrets, Token Expiration
 
-**5. Key Features**
-- 📔 Nhật ký thông minh với OCR (OpenAI Vision)
-- 💬 AI Chat với context cá nhân hóa
-- 💭 Album ảnh ký ức kèm âm thanh chú thích
-- ⏰ Nhắc nhở thông minh tự động
-- 🏥 Phân tích xu hướng sức khỏe
-- 👤 Quản lý profile người dùng
+**6. Key Features**
+
+- 📔 Nhật ký thông minh với OCR (Tesseract - vi/en)
+- 💬 AI Chat với context cá nhân hóa (Groq/Llama 3)
+- 💭 Album ảnh ký ức kèm âm thanh chú thích (CRUD đầy đủ)
+- ⏰ Nhắc nhở thông minh tự động từ ghi chú
+- 🎤 Speech-to-Text (Meta ASR - 1600+ ngôn ngữ)
+- 🏥 Phân tích xu hướng sức khỏe với AI insights
+- 👤 Quản lý profile người dùng đầy đủ
 
 **6. Scalability & Reliability**
+
 - Horizontal Scaling: Load Balancer + Multiple App Instances
 - Database: Oracle Autonomous (auto-scaling, self-patching)
 - Caching: Redis (Future)
@@ -870,6 +916,7 @@ Response Format:
 - Monitoring: Logging, Metrics, Alerts (Future)
 
 **7. Development Workflow**
+
 - Version Control: Git
 - Code Organization: Modular structure (API → Service → Model)
 - Testing: Pytest (Future)
@@ -877,12 +924,14 @@ Response Format:
 - Documentation: Swagger UI (OpenAPI)
 
 ### 📊 System Capacity (Current)
+
 - Concurrent Users: ~50-100 (single instance)
 - Database: Oracle Cloud (auto-scaling)
 - Response Time: <500ms (average)
 - Availability: 99.5% (development)
 
 ### 🚀 Future Roadmap
+
 - [ ] Kubernetes deployment
 - [ ] Redis caching layer
 - [ ] Message queue (RabbitMQ/Kafka)

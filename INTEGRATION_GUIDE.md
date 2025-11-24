@@ -3,6 +3,7 @@
 > Tài liệu hợp nhất mô tả quá trình tích hợp, hướng dẫn setup và toàn bộ API test flow sau khi hợp nhất BackendNhoApp vào BE1.
 
 ## 🧭 Điều hướng nhanh
+
 - [I. Tổng quan tích hợp](#i-tong-quan-tich-hop)
 - [II. Cấu trúc & Components](#ii-cau-truc--components)
 - [III. Thiết lập môi trường](#iii-thiet-lap-moi-truong)
@@ -19,6 +20,7 @@
 ## I. Tổng quan tích hợp
 
 ### ✨ Các năng lực đã hợp nhất
+
 1. **OCR (Tesseract)** – Trích xuất text đa ngôn ngữ (vi/en) từ ảnh.
 2. **Speech-to-Text (Omnilingual ASR)** – Chuyển đổi giọng nói thành text, hỗ trợ 1600+ ngôn ngữ với Meta's Omnilingual ASR.
 3. **Diaries** – Tạo nhật ký từ ảnh, AI tóm tắt, phân tích cảm xúc.
@@ -59,12 +61,14 @@ BE1/
 ## III. Thiết lập môi trường
 
 ### 1. Cài dependencies Python
+
 ```bash
 cd /home/ai_team/chung/BE/BE1
 pip install -r requirements.txt
 ```
 
 ### 2. Cài Tesseract OCR
+
 - **Ubuntu/Debian**
   ```bash
   sudo apt-get update
@@ -77,11 +81,13 @@ pip install -r requirements.txt
 - **Windows** – tải bộ cài từ https://github.com/UB-Mannheim/tesseract/wiki
 
 ### 3. Khởi tạo file `.env`
+
 ```bash
 cp .env.example .env
 ```
 
 ### 4. Chạy migration & start server
+
 ```bash
 alembic upgrade head
 uvicorn app.main:app --reload
@@ -106,6 +112,7 @@ GROQ_MAX_TOKENS=1024
 ```
 
 ### Hướng dẫn lấy Groq API Key
+
 1. Đăng nhập https://console.groq.com/
 2. Tạo API key mới trong mục **API Keys**
 3. Dán vào `.env` và reload dịch vụ.
@@ -118,6 +125,7 @@ GROQ_MAX_TOKENS=1024
 - Sử dụng PostgreSQL thay vì JSON storage cũ, hỗ trợ scale & truy vấn phức tạp.
 
 ### Reset migration khi lỗi
+
 ```bash
 alembic downgrade base
 alembic upgrade head
@@ -127,47 +135,50 @@ alembic upgrade head
 
 ## VI. So sánh BackendNhoApp vs BE1
 
-| Feature | BackendNhoApp | BE1 (Sau tích hợp) |
-|---------|---------------|-------------------|
-| Storage | JSON files | PostgreSQL + Alembic |
-| Authentication | Không có | JWT (Keycloak-ready) |
-| API Structure | Flat routes | Versioned `/api/v1`, `/api/v2` |
-| Scalability | Giới hạn | Production-ready, Docker Compose |
-| OCR/AI | Local scripts | Service chuẩn hóa, config qua `.env` |
-| Testing | Không có | Pytest, API guide chi tiết |
+| Feature        | BackendNhoApp | BE1 (Sau tích hợp)                   |
+| -------------- | ------------- | ------------------------------------ |
+| Storage        | JSON files    | PostgreSQL + Alembic                 |
+| Authentication | Không có      | JWT (Keycloak-ready)                 |
+| API Structure  | Flat routes   | Versioned `/api/v1`, `/api/v2`       |
+| Scalability    | Giới hạn      | Production-ready, Docker Compose     |
+| OCR/AI         | Local scripts | Service chuẩn hóa, config qua `.env` |
+| Testing        | Không có      | Pytest, API guide chi tiết           |
 
 ---
 
 ## VII. API Reference & Scenarios
 
 ### 1. Tổng quan nhanh
+
 - **Base URL:** `http://localhost:8000`
 - **Docs:** `/docs`, `/redoc`, `/api/openapi.json`
 - **Auth:** Bearer token cho mọi endpoint `/api/v1/*`
 
-| Nhóm | Method | Endpoint | Auth | Mục đích |
-| --- | --- | --- | --- | --- |
-| Auth | POST | `/api/auth/register` | ❌ | Đăng ký |
-| Auth | POST | `/api/auth/login` | ❌ | Lấy JWT |
-| Monitoring | GET | `/api/health-check` | ❌ | Kiểm tra service |
-| OCR | POST | `/api/v1/ocr` | ✅ | Trích xuất text |
-| Diary | POST/GET | `/api/v1/diaries` | ✅ | Lưu / xem nhật ký |
-| Notes | POST/GET | `/api/v1/notes` | ✅ | Ghi chú từ ảnh |
-| Reminders | POST/GET/PUT | `/api/v1/reminders` | ✅ | Quản lý nhắc nhở |
-| Memories | POST/GET | `/api/v1/memories` | ✅ | Lưu ký ức |
-| Health | POST/GET | `/api/v1/health/logs` | ✅ | Nhật ký sức khỏe |
-| Insights | GET | `/api/v1/health/insights` | ✅ | AI phân tích |
-| AI Chat | POST | `/api/v1/chat` | ✅ | Trò chuyện |
-| Memory Prompt | GET | `/api/v1/memory-prompt` | ✅ | Gợi ý hồi tưởng |
-| Profile | GET/POST | `/api/v1/profile` | ✅ | Hồ sơ người dùng |
-| Users | GET | `/api/v1/users` | ✅ | Admin APIs |
-| **ASR** | POST | `/api/v1/asr/transcribe` | ✅ | **Chuyển giọng nói thành text** |
-| **ASR Batch** | POST | `/api/v1/asr/transcribe/batch` | ✅ | **Xử lý nhiều file âm thanh** |
-| **ASR Languages** | GET | `/api/v1/asr/languages` | ✅ | **Danh sách ngôn ngữ hỗ trợ** |
+| Nhóm              | Method              | Endpoint                       | Auth | Mục đích                        |
+| ----------------- | ------------------- | ------------------------------ | ---- | ------------------------------- |
+| Auth              | POST                | `/api/auth/register`           | ❌   | Đăng ký                         |
+| Auth              | POST                | `/api/auth/login`              | ❌   | Lấy JWT                         |
+| Monitoring        | GET                 | `/api/health-check`            | ❌   | Kiểm tra service                |
+| OCR               | POST                | `/api/v1/ocr`                  | ✅   | Trích xuất text                 |
+| Diary             | POST/GET            | `/api/v1/diaries`              | ✅   | Lưu / xem nhật ký               |
+| Notes             | POST/GET            | `/api/v1/notes`                | ✅   | Ghi chú từ ảnh                  |
+| Reminders         | POST/GET/PUT        | `/api/v1/reminders`            | ✅   | Quản lý nhắc nhở                |
+| Memories          | POST/GET/PUT/DELETE | `/api/v1/memory`               | ✅   | CRUD ký ức (text/ảnh/audio)     |
+| Memory Photo      | POST                | `/api/v1/memory/photo_audio`   | ✅   | Lưu ảnh+audio ký ức             |
+| Health            | POST/GET            | `/api/v1/health/logs`          | ✅   | Nhật ký sức khỏe                |
+| Insights          | GET                 | `/api/v1/health/insights`      | ✅   | AI phân tích                    |
+| AI Chat           | POST                | `/api/v1/chat`                 | ✅   | Trò chuyện                      |
+| Memory Prompt     | GET                 | `/api/v1/memory-prompt`        | ✅   | Gợi ý hồi tưởng                 |
+| Profile           | GET/POST            | `/api/v1/profile`              | ✅   | Hồ sơ người dùng                |
+| Users             | GET                 | `/api/v1/users`                | ✅   | Admin APIs                      |
+| **ASR**           | POST                | `/api/v1/asr/transcribe`       | ✅   | **Chuyển giọng nói thành text** |
+| **ASR Batch**     | POST                | `/api/v1/asr/transcribe/batch` | ✅   | **Xử lý nhiều file âm thanh**   |
+| **ASR Languages** | GET                 | `/api/v1/asr/languages`        | ✅   | **Danh sách ngôn ngữ hỗ trợ**   |
 
 ### 2. Public APIs (không cần token)
 
 **Register**
+
 ```bash
 curl -X POST "http://localhost:8000/api/auth/register" \
   -H "Content-Type: application/json" \
@@ -175,6 +186,7 @@ curl -X POST "http://localhost:8000/api/auth/register" \
 ```
 
 **Login (lấy token)**
+
 ```bash
 curl -X POST "http://localhost:8000/api/auth/login" \
   -H "Content-Type: application/json" \
@@ -182,6 +194,7 @@ curl -X POST "http://localhost:8000/api/auth/login" \
 ```
 
 **Health Check**
+
 ```bash
 curl http://localhost:8000/api/health-check
 ```
@@ -189,6 +202,7 @@ curl http://localhost:8000/api/health-check
 ### 3. APIs cần Authentication
 
 #### OCR
+
 ```bash
 curl -X POST "http://localhost:8000/api/v1/ocr" \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -196,6 +210,7 @@ curl -X POST "http://localhost:8000/api/v1/ocr" \
 ```
 
 #### Diaries
+
 - **Create**
   ```bash
   curl -X POST "http://localhost:8000/api/v1/diaries" \
@@ -210,6 +225,7 @@ curl -X POST "http://localhost:8000/api/v1/ocr" \
   ```
 
 #### Notes
+
 ```bash
 curl -X POST "http://localhost:8000/api/v1/notes" \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -218,6 +234,7 @@ curl -X POST "http://localhost:8000/api/v1/notes" \
 ```
 
 #### Reminders
+
 ```bash
 curl -X POST "http://localhost:8000/api/v1/reminders" \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -230,7 +247,44 @@ curl -X PUT "http://localhost:8000/api/v1/reminders/1" \
   -d '{"is_completed": true}'
 ```
 
+#### Memories (CRUD)
+
+```bash
+# Create text memory
+curl -X POST "http://localhost:8000/api/v1/memory" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Ký ức tuổi thơ","tags":["gia đình","quê hương"]}'
+
+# Create memory with photo + audio
+curl -X POST "http://localhost:8000/api/v1/memory/photo_audio" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "image=@family.jpg" \
+  -F "audio=@voice_note.mp3" \
+  -F "content=Đây là cháu đích tôn" \
+  -F 'tags=["gia đình","tết 2023"]'
+
+# Get memory by ID
+curl -X GET "http://localhost:8000/api/v1/memory/1" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# Update memory
+curl -X PUT "http://localhost:8000/api/v1/memory/1" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Nội dung đã cập nhật","tags":["updated"]}'
+
+# Delete memory
+curl -X DELETE "http://localhost:8000/api/v1/memory/1" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# List memories
+curl -X GET "http://localhost:8000/api/v1/memory?limit=10" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
 #### Speech-to-Text (ASR)
+
 ```bash
 # Transcribe single audio file
 curl -X POST "http://localhost:8000/api/v1/asr/transcribe" \
@@ -256,6 +310,7 @@ curl -X GET "http://localhost:8000/api/v1/asr/languages/check/vie_Latn" \
 ```
 
 **Response mẫu:**
+
 ```json
 {
   "success": true,
@@ -267,6 +322,7 @@ curl -X GET "http://localhost:8000/api/v1/asr/languages/check/vie_Latn" \
 ```
 
 **Ngôn ngữ phổ biến:**
+
 - English: `eng_Latn`
 - Vietnamese: `vie_Latn`
 - Spanish: `spa_Latn`
@@ -276,9 +332,11 @@ curl -X GET "http://localhost:8000/api/v1/asr/languages/check/vie_Latn" \
 - Korean: `kor_Hang`
 
 #### Memories, Health Logs, AI Chat, Profile, User Management
+
 - Các câu lệnh `curl` giữ nguyên như phần API Testing Guide trước đây (đã gom trong nhóm tương ứng và có response mẫu cho Notes, Diaries, Health Insights, AI Chat).
 
 ### 4. Response mẫu tiêu biểu
+
 - **Diaries/Notes/Reminders**: gồm trường `summary`, `emotion`, `reminders_created` như tài liệu cũ.
 - **Health Insights**
   ```json
@@ -286,7 +344,13 @@ curl -X GET "http://localhost:8000/api/v1/asr/languages/check/vie_Latn" \
     "success": true,
     "total_logs": 15,
     "insights": "Huyết áp ổn định...",
-    "recent_logs": [{"log_type": "blood_pressure", "value": "120/80", "created_at": "2025-11-17T08:00:00"}]
+    "recent_logs": [
+      {
+        "log_type": "blood_pressure",
+        "value": "120/80",
+        "created_at": "2025-11-17T08:00:00"
+      }
+    ]
   }
   ```
 - **AI Chat**
@@ -299,6 +363,7 @@ curl -X GET "http://localhost:8000/api/v1/asr/languages/check/vie_Latn" \
   ```
 
 ### 5. Scenario: Người cao tuổi dùng app 1 ngày
+
 ```bash
 # 1. Đăng ký
 curl -X POST "http://localhost:8000/api/auth/register" -H "Content-Type: application/json" -d '{"username":"nguyen_van_a","email":"a@example.com","password":"Test@123","full_name":"Nguyễn Văn A"}'
@@ -318,13 +383,58 @@ curl -X POST "http://localhost:8000/api/v1/health/logs" -H "Authorization: Beare
 # 6. Tạo nhắc nhở uống thuốc
 curl -X POST "http://localhost:8000/api/v1/reminders" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"title":"⏰ Uống thuốc huyết áp","description":"Sau bữa sáng","remind_at":"2025-11-17T08:30:00"}'
 
-# 7. Lưu ký ức & chat với AI
-curl -X POST "http://localhost:8000/api/v1/memories" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"content":"Gặp bạn cũ ở công viên","tags":["công viên","bạn bè"]}'
+# 7. Lưu ký ức text
+curl -X POST "http://localhost:8000/api/v1/memory" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"content":"Gặp bạn cũ ở công viên","tags":["công viên","bạn bè"]}'
+
+# 8. Lưu ảnh gia đình với audio chú thích
+curl -X POST "http://localhost:8000/api/v1/memory/photo_audio" -H "Authorization: Bearer $TOKEN" \
+  -F "image=@family.jpg" \
+  -F "audio=@voice_note.mp3" \
+  -F "content=Đây là cháu đích tôn Bi, ảnh Tết 2023" \
+  -F 'tags=["gia đình","tết 2023","cháu"]'
+
+# 9. Xem lại ký ức vừa lưu
+curl -X GET "http://localhost:8000/api/v1/memory?limit=10" -H "Authorization: Bearer $TOKEN"
+
+# 10. Chat với AI
 curl -X POST "http://localhost:8000/api/v1/chat" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"message":"Hôm nay tôi thấy vui"}'
 
-# 8. Insights & reminders
+# 11. Insights & reminders
 curl -X GET "http://localhost:8000/api/v1/health/insights" -H "Authorization: Bearer $TOKEN"
 curl -X GET "http://localhost:8000/api/v1/reminders?status=pending" -H "Authorization: Bearer $TOKEN"
+
+# 12. Cập nhật ký ức (nếu cần)
+curl -X PUT "http://localhost:8000/api/v1/memory/1" -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Nội dung đã chỉnh sửa","tags":["updated"]}'
+```
+
+### 6. Memory Management Flow
+
+```bash
+# Tạo memory
+MEMORY_ID=$(curl -s -X POST "http://localhost:8000/api/v1/memory" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Ký ức test","tags":["test"]}' | jq -r '.id')
+
+# Đọc memory
+curl -X GET "http://localhost:8000/api/v1/memory/$MEMORY_ID" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Cập nhật memory
+curl -X PUT "http://localhost:8000/api/v1/memory/$MEMORY_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Đã cập nhật","tags":["updated","modified"]}'
+
+# Xóa memory
+curl -X DELETE "http://localhost:8000/api/v1/memory/$MEMORY_ID" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Verify đã xóa (expect 404)
+curl -X GET "http://localhost:8000/api/v1/memory/$MEMORY_ID" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ---
@@ -332,6 +442,7 @@ curl -X GET "http://localhost:8000/api/v1/reminders?status=pending" -H "Authoriz
 ## VIII. Tips, Tools & Status Codes
 
 ### Lưu token & tái sử dụng
+
 ```bash
 export TOKEN=$(curl -s -X POST "http://localhost:8000/api/auth/login" \
   -H "Content-Type: application/json" \
@@ -340,6 +451,7 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/v1/profile
 ```
 
 ### Test nhanh OCR bằng ảnh synthetic
+
 ```bash
 echo "Khám bệnh ngày 20/11 lúc 9h" > test.txt
 convert -size 800x600 xc:white -pointsize 30 -annotate +50+300 "$(cat test.txt)" test.jpg
@@ -347,17 +459,20 @@ curl -X POST "http://localhost:8000/api/v1/ocr" -H "Authorization: Bearer $TOKEN
 ```
 
 ### Format JSON cho dễ nhìn
+
 ```bash
 curl ... | jq '.'
 curl ... | python3 -m json.tool
 ```
 
 ### Truy cập tài liệu API
+
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
 - OpenAPI JSON: `curl http://localhost:8000/api/openapi.json | jq '.'`
 
 ### Status codes phổ biến
+
 - `200` OK, `201` Created
 - `400` Bad Request (input sai)
 - `401` Unauthorized (token hết hạn/chưa login)
@@ -371,11 +486,13 @@ curl ... | python3 -m json.tool
 ## IX. Troubleshooting
 
 ### Token hết hạn
+
 ```bash
 TOKEN=$(curl -s -X POST "http://localhost:8000/api/auth/login" ... | jq -r '.access_token')
 ```
 
 ### Lỗi upload file
+
 ```bash
 ls -lh image.jpg
 file image.jpg
@@ -383,6 +500,7 @@ curl -F "file=@/full/path/to/image.jpg" ...
 ```
 
 ### Tesseract không tìm thấy
+
 ```bash
 which tesseract
 # Cập nhật trong .env tùy hệ điều hành
@@ -391,11 +509,30 @@ TESSERACT_CMD=/usr/bin/tesseract         # Linux
 ```
 
 ### Groq API lỗi
+
 - Kiểm tra `GROQ_API_KEY` trong `.env`
 - Test gọi API Groq trực tiếp để xác minh
 - Kiểm tra network outbound
 
+### Memory API lỗi 422 "tags: Input should be a valid list"
+
+- Đảm bảo `tags` là array: `["tag1", "tag2"]` không phải string
+- Dùng `json.dumps()` khi lưu vào Oracle
+
+### Memory API lỗi 500 "parent key not found"
+
+- Lỗi foreign key `note_id = 0`
+- Giải pháp: Bỏ field `note_id` hoặc set `null` khi không liên kết note
+- Fixed: API tự động xử lý `note_id = None` hoặc `0`
+
+### Oracle connection timeout
+
+- Kiểm tra wallet files trong `app/db-oci/wallet/`
+- Verify `ORACLE_WALLET_DIR` path
+- Test connection: `docker exec -it be1-app-1 python3 -c "from app.core.database import engine; print(engine.connect())"`
+
 ### Migration lỗi
+
 ```bash
 alembic downgrade base
 alembic upgrade head
@@ -406,6 +543,7 @@ alembic upgrade head
 ## X. Checklist & Tài liệu
 
 ### Checklist triển khai
+
 - [x] Models & schemas
 - [x] OCR service (Tesseract)
 - [x] Speech-to-Text service (Omnilingual ASR)
@@ -420,6 +558,7 @@ alembic upgrade head
 - [ ] Deploy production
 
 ### Tài liệu tham khảo
+
 - Tesseract OCR: https://github.com/tesseract-ocr/tesseract
 - Omnilingual ASR: https://github.com/facebookresearch/omnilingual-asr
 - Groq API: https://console.groq.com/docs

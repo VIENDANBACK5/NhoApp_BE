@@ -1,6 +1,3 @@
-"""
-Memory API endpoints - Quản lý ký ức
-"""
 from fastapi import APIRouter, Depends, File, UploadFile, Form, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -10,12 +7,12 @@ from app.core.database import get_db
 from app.models.model_user import User
 from app.models.model_diary import Memory, Diary
 from app.models.model_user_profile import UserProfile
-from app.schemas.sche_diary import MemoryCreate, MemoryResponse
+from app.schemas.sche_diary import MemoryCreate, MemoryUpdate, MemoryResponse
 from app.services.srv_ai import AIService
 from app.services.srv_storage import StorageService
 from app.utils.login_manager import login_required
 
-router = APIRouter(prefix="/memory", tags=["💭 Memory"])
+router = APIRouter(prefix="/memory", tags=["Memory"])
 
 
 @router.post("/photo_audio", response_model=MemoryResponse)
@@ -27,20 +24,10 @@ async def save_memory_photo(
     current_user: User = Depends(login_required),
     db: Session = Depends(get_db)
 ):
-    """
-    Lưu ảnh ký ức kèm âm thanh chú thích
-    
-    - **image**: File ảnh gia đình, con cháu, sự kiện
-    - **audio**: File âm thanh chú thích (MP3, WAV, M4A) - tùy chọn
-    - **content**: Mô tả văn bản (vd: "Đây là cháu đích tôn Bi, ảnh chụp hồi Tết năm 2023")
-    - **tags**: Danh sách tags (JSON array string, vd: ["gia đình", "tết 2023"])
-    """
     try:
-        # Validate image
         if not StorageService.validate_file_type(image.content_type, ('image/',)):
             raise HTTPException(status_code=400, detail="File phải là ảnh")
         
-        # Save image
         image_contents = await image.read()
         image_url = await StorageService.save_image(
             image_contents, 
@@ -48,7 +35,6 @@ async def save_memory_photo(
             current_user.id
         )
         
-        # Save audio if provided
         audio_url = None
         if audio:
             if not StorageService.validate_file_type(audio.content_type, ('audio/',)):
@@ -61,13 +47,11 @@ async def save_memory_photo(
                 current_user.id
             )
         
-        # Parse tags
         try:
             tags_list = json.loads(tags) if tags else []
         except json.JSONDecodeError:
             tags_list = []
         
-        # Create memory
         memory = Memory(
             user_id=current_user.id,
             content=content,
@@ -80,7 +64,6 @@ async def save_memory_photo(
         db.commit()
         db.refresh(memory)
         
-        # Convert tags back to list for response
         memory.tags = tags_list
         
         return memory
@@ -98,7 +81,6 @@ async def save_memory(
     current_user: User = Depends(login_required),
     db: Session = Depends(get_db)
 ):
-    """Lưu ký ức (chỉ văn bản, không có ảnh/âm thanh)"""
     memory = Memory(
         user_id=current_user.id,
         content=memory_data.content,
@@ -109,7 +91,6 @@ async def save_memory(
     db.commit()
     db.refresh(memory)
     
-    # Convert tags to list for response
     memory.tags = memory_data.tags
     
     return memory
@@ -121,16 +102,10 @@ async def list_memories(
     current_user: User = Depends(login_required),
     db: Session = Depends(get_db)
 ):
-    """
-    Lấy danh sách ký ức
-    
-    Trả về ảnh gia đình, con cháu kèm audio chú thích (nếu có)
-    """
     memories = db.query(Memory).filter(
         Memory.user_id == current_user.id
     ).order_by(Memory.created_at.desc()).limit(limit).all()
     
-    # Convert tags from JSON string to list
     for memory in memories:
         if isinstance(memory.tags, str):
             try:
@@ -146,7 +121,6 @@ async def get_memory_prompt(
     current_user: User = Depends(login_required),
     db: Session = Depends(get_db)
 ):
-    """Gợi ý hồi tưởng cá nhân hóa"""
     diaries = db.query(Diary).filter(
         Diary.user_id == current_user.id
     ).order_by(Diary.created_at.desc()).limit(10).all()
@@ -180,4 +154,83 @@ async def get_memory_prompt(
             "memory_count": len(memories),
             "has_profile": user_profile is not None
         }
+    }
+
+
+@router.get("/{memory_id}", response_model=MemoryResponse)
+async def get_memory(
+    memory_id: int,
+    current_user: User = Depends(login_required),
+    db: Session = Depends(get_db)
+):
+    memory = db.query(Memory).filter(
+        Memory.id == memory_id,
+        Memory.user_id == current_user.id
+    ).first()
+    
+    if not memory:
+        raise HTTPException(status_code=404, detail="Không tìm thấy ký ức")
+    
+    if isinstance(memory.tags, str):
+        try:
+            memory.tags = json.loads(memory.tags)
+        except:
+            memory.tags = []
+    
+    return memory
+
+
+@router.put("/{memory_id}", response_model=MemoryResponse)
+async def update_memory(
+    memory_id: int,
+    update_data: MemoryUpdate,
+    current_user: User = Depends(login_required),
+    db: Session = Depends(get_db)
+):
+    memory = db.query(Memory).filter(
+        Memory.id == memory_id,
+        Memory.user_id == current_user.id
+    ).first()
+    
+    if not memory:
+        raise HTTPException(status_code=404, detail="Không tìm thấy ký ức")
+    
+    if update_data.content is not None:
+        memory.content = update_data.content
+    
+    if update_data.tags is not None:
+        memory.tags = json.dumps(update_data.tags, ensure_ascii=False)
+    
+    db.commit()
+    db.refresh(memory)
+    if isinstance(memory.tags, str):
+        try:
+            memory.tags = json.loads(memory.tags)
+        except:
+            memory.tags = []
+    
+    return memory
+
+
+@router.delete("/{memory_id}")
+async def delete_memory(
+    memory_id: int,
+    current_user: User = Depends(login_required),
+    db: Session = Depends(get_db)
+):
+    memory = db.query(Memory).filter(
+        Memory.id == memory_id,
+        Memory.user_id == current_user.id
+    ).first()
+    
+    if not memory:
+        raise HTTPException(status_code=404, detail="Không tìm thấy ký ức")
+    
+    db.delete(memory)
+    db.commit()
+    
+    return {
+        "success": True,
+        "message": "Đã xóa ký ức",
+        "deleted_id": memory_id
     }

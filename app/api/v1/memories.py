@@ -12,7 +12,8 @@ from app.services.srv_ai import AIService
 from app.services.srv_storage import StorageService
 from app.utils.login_manager import login_required
 
-router = APIRouter(prefix="/memory", tags=["Memory"])
+
+router = APIRouter(prefix="/memory", tags=["Ký ức"])
 
 
 @router.post("/photo_audio", response_model=MemoryResponse)
@@ -24,34 +25,22 @@ async def save_memory_photo(
     current_user: User = Depends(login_required),
     db: Session = Depends(get_db)
 ):
+    # Lưu ảnh và audio lên storage, lưu URL vào DB
     try:
         if not StorageService.validate_file_type(image.content_type, ('image/',)):
             raise HTTPException(status_code=400, detail="File phải là ảnh")
-        
         image_contents = await image.read()
-        image_url = await StorageService.save_image(
-            image_contents, 
-            image.content_type, 
-            current_user.id
-        )
-        
+        image_url = await StorageService.save_image(image_contents, image.content_type, current_user.id)
         audio_url = None
         if audio:
             if not StorageService.validate_file_type(audio.content_type, ('audio/',)):
                 raise HTTPException(status_code=400, detail="File âm thanh không hợp lệ")
-            
             audio_contents = await audio.read()
-            audio_url = await StorageService.save_audio(
-                audio_contents,
-                audio.content_type,
-                current_user.id
-            )
-        
+            audio_url = await StorageService.save_audio(audio_contents, audio.content_type, current_user.id)
         try:
             tags_list = json.loads(tags) if tags else []
         except json.JSONDecodeError:
             tags_list = []
-        
         memory = Memory(
             user_id=current_user.id,
             content=content,
@@ -59,15 +48,11 @@ async def save_memory_photo(
             image_url=image_url,
             audio_url=audio_url
         )
-        
         db.add(memory)
         db.commit()
         db.refresh(memory)
-        
         memory.tags = tags_list
-        
         return memory
-        
     except HTTPException:
         raise
     except Exception as e:

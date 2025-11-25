@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     # OAuth
     GOOGLE_CLIENT_ID: Optional[str] = None
     
+    # Cloudflare R2 Storage
+    R2_WORKER_URL: str = "https://my-r2-worker.sangtd.workers.dev"
+    R2_BUCKET_URL: str = "https://storage.sangtd.workers.dev/bucket/files"
+    
     @property
     def DATABASE_URL(self) -> str:
         # PostgreSQL (commented - not using)
